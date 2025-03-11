@@ -88,7 +88,7 @@ class DataInterface(ABC):
         pass
 
 class MaterialProjectInterface(DataInterface):
-    """
+     def __init__(self, api_key):
     MaterialProject数据接口 (MaterialProject Data Interface)
     
     实现了从MaterialProject数据库获取材料结构和属性数据的功能。
@@ -123,7 +123,26 @@ class MaterialProjectInterface(DataInterface):
         --------
         dict
             包含材料结构数据的字典
-        """
+        try:
+            # 从 MaterialProject 数据库获取结构数据
+            structure = self.mpr.get_structure_by_material_id(material_id)
+            # 提取原子种类
+            atoms = [str(specie) for specie in structure.species]
+            # 提取原子位置
+            positions = structure.cart_coords.tolist()
+            # 提取晶格参数
+            lattice = structure.lattice.matrix.tolist()
+
+            return {
+                "material_id": material_id,
+                "atoms": atoms,
+                "positions": positions,
+                "lattice": lattice
+            }
+        except Exception as e:
+            print(f"Error fetching data for {material_id}: {e}")
+            return None
+
         # 使用pymatgen从MaterialProject API获取结构数据
         # mp_structure = self._get_structure_from_api(material_id)
         
