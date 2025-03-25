@@ -27,7 +27,8 @@
 """
 
 from abc import ABC, abstractmethod
-import numpy as np
+import requests
+from pymatgen.ext.matproj import MPRester
 
 class DataInterface(ABC):
     """
@@ -124,14 +125,21 @@ class MaterialProjectInterface(DataInterface):
         dict
             包含材料结构数据的字典
         """
-        # 使用pymatgen从MaterialProject API获取结构数据
-        # mp_structure = self._get_structure_from_api(material_id)
-        
-        # 将结构数据转换为指定格式的字典
-        # structure_data = self._convert_structure(mp_structure)
-        
-        # return structure_data
-        pass
+       try:
+            with MPRester(self.api_key) as m:
+                structure = m.get_structure_by_material_id(material_id)
+            structure_data = {
+                "material_id": material_id,
+                "atoms": [str(site.specie) for site in structure.sites],
+                "positions": [site.coords.tolist() for site in structure.sites],
+                "lattice": structure.lattice.matrix.tolist()
+            }
+            return structure_data
+        except requests.exceptions.RequestException as e:
+            print(f"请求错误: {e}")
+        except Exception as e:
+            print(f"发生未知错误: {e}")
+        return None
     
     def get_properties(self, material_id: str):
         """
@@ -149,11 +157,18 @@ class MaterialProjectInterface(DataInterface):
         dict
             包含材料属性数据的字典
         """
-        # 使用pymatgen从MaterialProject API获取属性数据
-        # mp_properties = self._get_properties_from_api(material_id)
-        
-        # 将属性数据转换为指定格式的字典
-        # property_data = self._convert_properties(mp_properties)
-        
-        # return property_data
-        pass 
+       try:
+            with MPRester(self.api_key) as m:
+                doc = m.get_doc(material_id)
+            property_data = {
+                "material_id": material_id,
+                "formation_energy": doc.get("formation_energy_per_atom", None),
+                "band_gap": doc.get("band_gap", None),
+                "elastic_modulus": doc.get("elasticity", {}).get("K_VRH", None)
+            }
+            return property_data
+        except requests.exceptions.RequestException as e:
+            print(f"请求错误: {e}")
+        except Exception as e:
+            print(f"发生未知错误: {e}")
+        return None
